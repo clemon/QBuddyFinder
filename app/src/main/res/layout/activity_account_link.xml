@@ -7,21 +7,31 @@
     tools:context="com.example.chet.qbuddyfinder.AccountLinkActivity"
     android:id="@+id/linkActivity_root">
 
-
-
-    <EditText
-        android:id="@+id/username_input"
+    <LinearLayout
+        android:id="@+id/usernameRegion_layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Summoner name"
-        />
+        android:orientation="horizontal" >
+        <EditText
+            android:id="@+id/username_input"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:hint="Summoner name"
+            android:layout_weight="1"
+            />
+        <Spinner
+            android:id="@+id/regions_spinner"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+        </Spinner>
+    </LinearLayout>
 
     <Button
         android:id="@+id/linkButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Submit"
-        android:layout_below="@id/username_input"
+        android:layout_below="@id/usernameRegion_layout"
         android:paddingTop="20dp"
         android:paddingBottom="20dp"
         android:layout_margin="20dp"
