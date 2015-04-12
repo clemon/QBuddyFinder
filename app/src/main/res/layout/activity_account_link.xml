@@ -1,0 +1,62 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
+    android:layout_height="match_parent" android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    tools:context="com.example.chet.qbuddyfinder.AccountLinkActivity"
+    android:id="@+id/linkActivity_root">
+
+
+
+    <EditText
+        android:id="@+id/username_input"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Summoner name"
+        />
+
+    <Button
+        android:id="@+id/linkButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Submit"
+        android:layout_below="@id/username_input"
+        android:paddingTop="20dp"
+        android:paddingBottom="20dp"
+        android:layout_margin="20dp"
+        android:layout_centerHorizontal="true" />
+
+    <TextView
+        android:id="@+id/linkInstructions"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Great! Now to make sure it's actually your account, please log in to the LoL client and change one of your rune page titles to"
+        android:gravity="center"
+        android:layout_below="@id/linkButton"
+        android:alpha="0" />
+
+    <TextView
+        android:id="@+id/randomDigits"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="00000000"
+        android:textSize="40dp"
+        android:alpha="0"
+        android:layout_centerHorizontal="true"
+        android:layout_below="@id/linkInstructions"/>
+
+    <Button
+        android:id="@+id/authButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Authenticate"
+        android:layout_below="@id/randomDigits"
+        android:paddingTop="20dp"
+        android:paddingBottom="20dp"
+        android:layout_margin="20dp"
+        android:layout_centerHorizontal="true"
+        android:clickable="false"
+        android:alpha="0"/>
+
+    </RelativeLayout>
