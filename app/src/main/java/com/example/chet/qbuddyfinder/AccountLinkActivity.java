@@ -20,8 +20,12 @@ import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
-import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.Random;
 
@@ -33,6 +37,7 @@ public class AccountLinkActivity extends ActionBarActivity {
     private static final int MIN = 10000000;
     private static String region;
     private static int authNum;
+    private static String summId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,7 +72,6 @@ public class AccountLinkActivity extends ActionBarActivity {
 
         // Submit Button and click listener
         Button linkButton = (Button) findViewById(R.id.linkButton);
-
         linkButton.setOnClickListener(
             new View.OnClickListener() {
                 @Override
@@ -101,29 +105,42 @@ public class AccountLinkActivity extends ActionBarActivity {
                     // Instantiate the RequestQueue.
                     RequestQueue queue = Volley.newRequestQueue(view.getContext());
 
-                    //get summonerID
+                    // url to get summonerID
                     String url = "https://"+AccountLinkActivity.region+".api.pvp.net/api/lol/"
                             +AccountLinkActivity.region+"/v1.4/summoner/by-name/"
-                            +username.getText()+"?api_key="+ApiKey.API_KEY;
+                            +username.getText().toString()+"?api_key="+ApiKey.API_KEY;
 
-                    // Request a string response from the provided URL.
-                    StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
-                            new Response.Listener<String>() {
+                    // Request a JSON response from the provided URL.
+                    JsonObjectRequest summonderIDrequest = new JsonObjectRequest(Request.Method.GET, url,
+                            new Response.Listener<JSONObject>() {
                                 @Override
-                                public void onResponse(String response) {
-                                    // Display the first 500 characters of the response string.
-                                    Log.d(TAG, "Response is: "+ response);
+                                public void onResponse(JSONObject response) {
+                                    Log.d(TAG, "Response is: "+ response.toString());
+                                    EditText sumname_field = (EditText) findViewById(R.id.username_input);
+                                    String sumname = sumname_field.getText().toString().toLowerCase();
+
+                                    // parse the volley response
+                                    try {
+                                        JSONObject summoner = response.getJSONObject(sumname);
+                                        AccountLinkActivity.summId = summoner.getString("id");
+                                        Log.d(TAG, "id: "+AccountLinkActivity.summId);
+
+                                    } catch (JSONException e) {
+                                        e.printStackTrace();
+                                    }
                                 }
                             }, new Response.ErrorListener() {
                         @Override
                         public void onErrorResponse(VolleyError error) {
-                            Log.d(TAG, "That didn't work!");
+                            if(error.networkResponse != null && error.networkResponse.data != null) {
+                                VolleyError volleyError = new VolleyError(new String(error.networkResponse.data));
+                                Log.d(TAG, "error yo: " + volleyError);
+                            }
+                            // TODO actually handle errors?
                         }
                     });
                     // Add the request to the RequestQueue.
-                    queue.add(stringRequest);
-
-
+                    queue.add(summonderIDrequest);
 
                     // bring in the next step (rand number and auth button)
                     TextView authInstruct = (TextView) rootView.findViewById(R.id.linkInstructions);
@@ -131,6 +148,74 @@ public class AccountLinkActivity extends ActionBarActivity {
                     authInstruct.setAlpha(1);
                     authButton.setAlpha(1);
                     authButton.setClickable(true);
+                }
+            }
+        );
+
+        // Auth Button and click listener
+        Button authButton = (Button) findViewById(R.id.authButton);
+        authButton.setOnClickListener(
+            new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    // get summoners rune pages
+                    // check if match random num
+                    // auth or try again
+
+                    // Instantiate the RequestQueue.
+                    RequestQueue queue = Volley.newRequestQueue(view.getContext());
+
+                    // url to get rune pages
+                    String url = "https://"+AccountLinkActivity.region+".api.pvp.net/api/lol/"
+                            +AccountLinkActivity.region+"/v1.4/summoner/"
+                            +AccountLinkActivity.summId+"/runes?api_key="+ApiKey.API_KEY;
+
+                    // Request a JSON response from the provided URL.
+                    JsonObjectRequest runePageRequest = new JsonObjectRequest(Request.Method.GET, url,
+                            new Response.Listener<JSONObject>() {
+                                @Override
+                                public void onResponse(JSONObject response) {
+                                    Log.d(TAG, "Response is: "+ response.toString());
+
+                                    // parse the response
+                                    try {
+                                        JSONObject summID = response.getJSONObject(AccountLinkActivity.summId);
+                                        JSONArray runePages = summID.getJSONArray("pages");
+
+                                        for(int x = 0; x < runePages.length(); x++) {
+                                            JSONObject page = runePages.getJSONObject(x);
+                                            String pageTitle = page.getString("name");
+                                            Log.d(TAG, "runepage "+x+": "+pageTitle);
+
+                                            // if match found
+                                            if(Integer.toString(AccountLinkActivity.authNum).equals(pageTitle)) {
+                                                // authenticateddddddddd
+                                                // TODO put all that shit in the database
+                                                // and go to the main activity
+                                                Log.d(TAG, "Authenticated!");
+                                            }
+                                        }
+
+                                        // didnt find a match. Try again?
+                                        Button authButton = (Button) findViewById(R.id.authButton);
+                                        authButton.setText("Try Again");
+
+                                    } catch (JSONException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                            }, new Response.ErrorListener() {
+                        @Override
+                        public void onErrorResponse(VolleyError error) {
+                            if(error.networkResponse != null && error.networkResponse.data != null) {
+                                VolleyError volleyError = new VolleyError(new String(error.networkResponse.data));
+                                Log.d(TAG, "error yo: " + volleyError);
+                            }
+                            // TODO actually handle errors?
+                        }
+                    });
+                    // Add the request to the RequestQueue.
+                    queue.add(runePageRequest);
 
                 }
             }
