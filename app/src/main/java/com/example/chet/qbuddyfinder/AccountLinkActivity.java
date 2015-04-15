@@ -22,22 +22,29 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
+import com.microsoft.windowsazure.mobileservices.MobileServiceClient;
+import com.microsoft.windowsazure.mobileservices.http.ServiceFilterResponse;
+import com.microsoft.windowsazure.mobileservices.table.TableOperationCallback;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.net.MalformedURLException;
 import java.util.Random;
 
 
 public class AccountLinkActivity extends ActionBarActivity {
 
+    private MobileServiceClient mClient;
     private static final String TAG = "AccountLinkActivity";    // tag for logging
     private static final int MAX = 99999999;
     private static final int MIN = 10000000;
+    private static String email;
     private static String region;
     private static int authNum;
     private static String summId;
+    private static String summName;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,8 +52,18 @@ public class AccountLinkActivity extends ActionBarActivity {
         setContentView(R.layout.activity_account_link);
         Log.d(TAG, "onCreate");
 
+        try {
+            mClient = new MobileServiceClient(
+                    "https://qbuddyfinder.azure-mobile.net/",
+                    ApiKey.AZURE_API_KEY,
+                    this
+            );
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
+
         Intent intent = getIntent();
-        String email = intent.getStringExtra(StartScreenActivity.EXTRA_EMAIL);
+        this.email = intent.getStringExtra(StartScreenActivity.EXTRA_EMAIL);
         Log.d(TAG, "email: "+email);
 
         // Spinner setup and choice listener
@@ -98,6 +115,8 @@ public class AccountLinkActivity extends ActionBarActivity {
                     username.setAlpha((float).25);
                     regionSpin.setAlpha((float).25);
 
+                    AccountLinkActivity.summName = username.getText().toString();
+
                     // get outta my face, keyboard
                     InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
                     imm.hideSoftInputFromWindow(username.getWindowToken(), 0);
@@ -108,7 +127,7 @@ public class AccountLinkActivity extends ActionBarActivity {
                     // url to get summonerID
                     String url = "https://"+AccountLinkActivity.region+".api.pvp.net/api/lol/"
                             +AccountLinkActivity.region+"/v1.4/summoner/by-name/"
-                            +username.getText().toString()+"?api_key="+ApiKey.API_KEY;
+                            +username.getText().toString()+"?api_key="+ApiKey.RIOT_API_KEY;
 
                     // Request a JSON response from the provided URL.
                     JsonObjectRequest summonderIDrequest = new JsonObjectRequest(Request.Method.GET, url,
@@ -158,17 +177,12 @@ public class AccountLinkActivity extends ActionBarActivity {
             new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    // get summoners rune pages
-                    // check if match random num
-                    // auth or try again
-
                     // Instantiate the RequestQueue.
                     RequestQueue queue = Volley.newRequestQueue(view.getContext());
-
                     // url to get rune pages
                     String url = "https://"+AccountLinkActivity.region+".api.pvp.net/api/lol/"
                             +AccountLinkActivity.region+"/v1.4/summoner/"
-                            +AccountLinkActivity.summId+"/runes?api_key="+ApiKey.API_KEY;
+                            +AccountLinkActivity.summId+"/runes?api_key="+ApiKey.RIOT_API_KEY;
 
                     // Request a JSON response from the provided URL.
                     JsonObjectRequest runePageRequest = new JsonObjectRequest(Request.Method.GET, url,
@@ -189,10 +203,9 @@ public class AccountLinkActivity extends ActionBarActivity {
 
                                             // if match found
                                             if(Integer.toString(AccountLinkActivity.authNum).equals(pageTitle)) {
-                                                // authenticateddddddddd
                                                 // TODO put all that shit in the database
-                                                // and go to the main activity
-                                                Log.d(TAG, "Authenticated!");
+
+                                                getTier();
                                             }
                                         }
 
@@ -222,6 +235,83 @@ public class AccountLinkActivity extends ActionBarActivity {
         );
 
 
+    }
+
+
+    public void getTier() {
+        // Instantiate the RequestQueue.
+        RequestQueue queue = Volley.newRequestQueue(this);
+
+
+        // API url for ranked stats
+        String url = "https://"+region+".api.pvp.net/api/lol/"+region+"/v2.5/league/by-summoner/"
+                +summId+"/entry?api_key="+ApiKey.RIOT_API_KEY;
+
+        // Request a JSON response from the provided URL.
+        JsonObjectRequest tierRequest = new JsonObjectRequest(Request.Method.GET, url,
+                new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        Log.d(TAG, "tier Response is: "+ response.toString());
+                        try {
+                            JSONArray arr = response.getJSONArray(summId);
+
+                            for(int x=0; x<arr.length(); x++) {
+                                JSONObject mode = arr.getJSONObject(x);
+                                if(mode.getString("queue").equals("RANKED_SOLO_5x5")) {
+
+                                    toTheDB(mode.getString("tier")
+                                    +" "+mode.getJSONArray("entries").getJSONObject(0).getString("division"));
+
+                                }
+                            }
+
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                if(error.networkResponse != null && error.networkResponse.data != null) {
+                    VolleyError volleyError = new VolleyError(new String(error.networkResponse.data));
+                    Log.d(TAG, "error yo: " + volleyError);
+                }
+                // TODO actually handle errors?
+            }
+        });
+        // Add the request to the RequestQueue.
+        queue.add(tierRequest);
+
+    }
+
+    public void toTheDB(String tier) {
+        User user = new User();
+        user.email = AccountLinkActivity.email;
+        user.summonerId = AccountLinkActivity.summId;
+        user.region = AccountLinkActivity.region;
+        user.summonerName = AccountLinkActivity.summName;
+        user.tier = tier;
+        user.candidates = "";
+        user.matches = "";
+        Log.d(TAG, "Authenticated!");
+        Log.d(TAG, "email: "+user.email
+                +"\nsummId: "+user.summonerId
+                +"\nregion: "+user.region
+                +"\nsummName: "+user.summonerName
+                +"\ntier: "+user.tier);
+
+        mClient.getTable(User.class).insert(user, new TableOperationCallback<User>() {
+            public void onCompleted(User entity, Exception exception, ServiceFilterResponse response) {
+                if (exception == null) {
+                    // Insert succeeded
+                    Log.d(TAG, "azure success");
+                } else {
+                    // Insert failed
+                    Log.d(TAG, "azure failed us..."+exception.toString());
+                }
+            }
+        });
     }
 
     @Override
