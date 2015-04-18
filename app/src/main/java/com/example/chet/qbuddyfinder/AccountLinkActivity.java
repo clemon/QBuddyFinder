@@ -306,6 +306,7 @@ public class AccountLinkActivity extends ActionBarActivity {
                 if (exception == null) {
                     // Insert succeeded
                     Log.d(TAG, "azure success");
+                    
                 } else {
                     // Insert failed
                     Log.d(TAG, "azure failed us..."+exception.toString());

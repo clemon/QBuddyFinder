@@ -25,5 +25,5 @@ dependencies {
     compile 'com.google.android.gms:play-services:6.5.87'
     compile 'com.mcxiaoke.volley:library:1.0.+'
     compile 'com.microsoft.azure:azure-mobile-services-android-sdk:2.0.2-beta2'
-
+    compile 'com.lorentzos.swipecards:library:1.0.8@aar'
 }
